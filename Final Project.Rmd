@@ -1,0 +1,219 @@
+---
+title: "Final Project"
+author: "Maura Jaeger"
+output: html_notebook
+---
+
+Approximately 1 in 4 people in the United States have some type of disability. For those with disabilities, accommodations may have to be made to allow them the same access to the world as people without disabilities. Perhaps the most important accommodations come in the form of educational resources and schools that have specific supports in place for students with disabilities. For those with hearing disabilities, there are a lot of different options for schooling that could support the student. But the most wholly accessible educational option is often a deaf school. Deaf schools and schools with specific programs to support deaf students are also become social hubs for the deaf community, at least at the post-secondary level. The three largest deaf communities in the United States are Washington, D.C.; Rochester, NY; and Los Angeles, CA, each of which have a university or college that is specifically geared towards deaf students (Gallaudet University, National Technical Institute of the Deaf, and National Center of Deafness at CSUN, respectively). 
+
+In the following analysis, we are going to examine if this pattern can be found on the state level when looking at primary and secondary schools for the deaf. In other words, do people with hearing disabilities tend to live in states that have more deaf schools in relation to their deaf population? To accomplish this, we will first examine how the prevalence of hearing disabilities compares to other types of disabilities. Then, we will look at how hearing disabilities are distributed across the country. Finally, we will try to relate the number of deaf schools in a state to the percentage of the state population with a hearing disability. 
+
+### Set Up
+
+Before anything, we'll clean up the environment and load the necessary packages. 
+```{r}
+# Clean up the RStudio environment 
+rm(list = ls())
+
+# Load all packages here
+library(tidyverse)
+library(DataComputing)
+library(rvest)
+```
+
+To begin our analysis, let's read in the Disability and Health Data System (DHDS) file. This file contains data about six functional disability types in adults at the state level. This data is published by the Centers for Disease Control (CDC) and can be accessed here: https://catalog.data.gov/dataset/disability-and-health-data-system-dhds. This data originally comes from the Behavioral Risk Factor Surveillance System (BRFSS), which, according to the CDC, is "a state-based telephone interview in which an interviewer asks questions on a variety of health risks and behaviors, chronic conditions, and demographics." It is also important to note that the disability estimate percentages given in this data set are age-adjusted prevalance rates, meaning that they have controlled for the differences in age distributions among states/territories. 
+```{r}
+# Read in DHDS file
+DHDS <- read.csv(file = "Disability_and_Health_Data_System__DHDS_.csv", 
+                 header = TRUE, sep = ",")
+
+# Inspect DHDS data
+glimpse(DHDS)
+```
+
+### How are different disability types distributed in comparison to each other? Create boxplots to show this comparison. 
+
+We'll begin by cleaning up the DHDS table so it is easier to use. First, we only want to look at information from states/territories, so we'll filter out any regional or country level locations. 
+```{r}
+pattern <- "US|HHS[[:digit:]]+"
+
+Territories_DHDS <-
+  DHDS %>%
+  filter( ! grepl(pattern, LocationAbbr))
+
+head(Territories_DHDS)
+```
+
+The DHDS data contains 31 variables, a lot of which are extraneous for our purposes. For the next step, let's only select the most helpful variables. We'll also be focusing on the disability estimates from the year 2016 for the cohort of all individuals 18 years or older, so let's filter for these specifications as well. 
+```{r} 
+# Make data glyph-ready for boxplots
+Types <-
+  Territories_DHDS %>%
+  select(Year, LocationAbbr, LocationDesc, Category, Indicator, Response, 
+         Data_Value_Unit, Data_Value, Data_Value_Type) %>%
+  filter(Category == "Disability Estimates", 
+         Indicator == "Disability status and types among adults 18 years of age or older", 
+         Year == "2016") %>%
+  group_by(Response, LocationAbbr) %>%
+  summarise(Data_Value)
+  
+head(Types)
+```
+
+Now, for our boxplot figure, let's separate the categories of "Any Disability" and "No Disability" from amongst the six specific types. This will make it easier to read to the boxplots and compare the distributions of the different disability types. 
+```{r}
+# Change order of levels of Response to separate "Any" and "No" from specific types for easier viewing
+Types$Response <- factor(Types$Response, levels(Types$Response)[c(45, 18, 21, 28,
+                                                                 32, 40, 54, 60)])
+
+levels(Types$Response)
+```
+
+Now we can construct our boxplots of the prevalences of different disability types. Let's also overlay points on the boxplots to show the specific prevalances of states and territories. 
+```{r fig.width=6}
+# Create boxplots of disability types
+Types %>%
+  ggplot(aes(x = Response, y = Data_Value, color = Response)) + 
+  geom_boxplot(outlier.size = 3, outlier.shape = 18) +
+  geom_jitter(shape = 1, position = position_jitter(0.2)) +
+  coord_flip() +
+  xlab("Disability Type") +
+  ylab("% of State/Territory Population") +
+  labs(color = "Disability Type") +
+  ggtitle("Prevalence of Various Disability Types in US States and Territories")
+```
+From these boxplots, we can see that in most states/territories, between 20 and 35 percent of the population have some type of disability. We can also see that of the six specific disability types, Mobility has the highest median prevalence rate, but also the greatest range of prevalences among the states and territories. We also note that the boxplot for Self-care disabilities shows the smallest range, meaning that it is the most evenly distributed disability type across the country. In regards to hearing ability, most states/territories report between a 5 and 10 percent prevalence rate of hearing disabilities, although there are a few outlier states in which this rate is a little higher. 
+
+### How are individual disability types distributed across the country? Construct choropleth maps to show a few of these country-wide distributions. 
+
+For this next step, we will clean up the Territories_DHDS table in a similar way to how we created the Types data frame in the previous section. But this time, we will also make the data wide by spreading the Response variable into separate variables for each disability type. 
+```{r}
+Territories_wide <- 
+  Territories_DHDS %>%
+  select(Year, LocationAbbr, LocationDesc, Category, Indicator, Response, 
+         Data_Value_Unit, Data_Value, Data_Value_Type) %>%
+  filter(Category == "Disability Estimates", 
+         Indicator == "Disability status and types among adults 18 years of age or older",
+         Year == "2016") %>%
+  arrange(LocationAbbr, Response) %>%
+  spread(key = Response, value = Data_Value) %>%
+  rename(Any = 'Any Disability', Cognitive = 'Cognitive Disability', 
+         Hearing = 'Hearing Disability', 
+         Independent_Living = 'Independent Living Disability', 
+         Mobility = 'Mobility Disability', None = 'No Disability', 
+         Self_Care = 'Self-care Disability', Vision = 'Vision Disability')
+
+head(Territories_wide)
+```
+
+Because we are creating a choropleth map that only has distinct areas for the US states, we have to filter out Washington D.C. and the territories. 
+```{r}
+# Create a frame with states only for choropleth maps
+pattern2 <- "DC|GU|PR|VI"
+
+StatesOnly <-
+  Territories_wide %>%
+  filter( ! grepl(pattern2, LocationAbbr))
+
+head(StatesOnly, 10)
+```
+
+First, let's see how disability as a whole is distributed across the United States. 
+```{r}
+StatesOnly %>%
+  USMap(key = "LocationDesc", fill = "Any") +
+  ggtitle("Percentage of State Populations with Any Disability") +
+  scale_fill_gradient(low = "#ffc21b", high = "#815e00")
+```
+We can see here that the states with the highest proportions of any type of disability are generally found in the southern region, with West Virginia appearing to have the greatest percentage of people with a disability of some sort.
+
+Next, let's look specifically at the distribution of hearing disabilities across the United States.
+```{r}
+StatesOnly %>%
+  USMap(key = "LocationDesc", fill = "Hearing") +
+  ggtitle("Percentage of State Populations with Hearing Disability") +
+  scale_fill_gradient(low = "#0cff90", high = "#00723e")
+```
+This map shows the percentage of people with a hearing disability in each state. Here, there is not a very clear pattern. Again, West Virginia appears to have the highest proportion of people with a hearing disability, and a few southern states have higher prevalences of hearing disabilities. However, Montana and Wyoming also have comparatively large proportions of people with hearing disabilities. Let's see if we can find a trend relating this distribution to the educational resources available for people who are deaf or hard-of-hearing. 
+
+### Is there a relationship between the prevalance of hearing disabilities and the number of deaf schools in a state? Produce a figure to display your findings. 
+
+We'll begin finding the number of deaf schools in each state. Conveniently, Wikipedia has a list of the schools for the deaf in the United States. It is split into two tables: one for residential deaf schools and one for deaf schools with a day program. We need to combine these tables into one table with all of the deaf schools in the country. 
+```{r}
+# Scrape in Wikipedia tables with deaf schools 
+page <- "https://en.wikipedia.org/wiki/List_of_schools_for_the_deaf#United_States"
+
+TableList <- page %>%
+  read_html() %>%
+  html_nodes(css = "table") %>%
+  html_table(fill = TRUE)
+
+Residential <- TableList[[1]]
+
+Day <- TableList[[2]] %>%
+  select(-"")  # There is an extra empty column in the day school table, so get rid of it before we bind the tables
+
+DeafSchools <- rbind(Residential, Day)
+
+glimpse(DeafSchools)
+```
+
+Next, we can do some wrangling to get the total number of deaf schools in each state. 
+```{r}
+# Wrangle DeafSchools
+School_Numbers <-
+  DeafSchools %>%
+  group_by(State) %>%
+  summarise(num_schools = n())
+
+head(School_Numbers)
+```
+
+Now, we can join the School_Numbers table with the Territories_wide table, matching for state/territory. After the join, some states/territories may have an 'NA' for the num_schools variable (if there are no deaf schools listed for that location), so we will separately assign these states/territories with a value of 0 for num_schools. 
+```{r}
+# Join Territories_wide and School_Numbers
+EstimatesAndSchools <-
+  Territories_wide %>%
+  full_join(School_Numbers, by = c("LocationDesc" = "State")) %>%
+  arrange(desc(`Hearing`))
+
+EstimatesAndSchools[is.na(EstimatesAndSchools)] <- 0
+
+```
+
+The next step is to gather the disability types variables to return the data to a narrow format. Then, we can filter for only the Hearing Disability estimates. From here, we will also create a new variable that represents the number of deaf schools per percentage of the state that has a hearing disability. 
+```{r}
+HearingEstimatesSchools <- 
+  EstimatesAndSchools %>%
+  gather(key = disability_type, value = percentage, 'Any', 'Cognitive', 'Hearing', 
+         'Independent_Living', 'Mobility', 'None', 'Self_Care', 'Vision') %>%
+  filter(disability_type == "Hearing") %>%
+  mutate(school_proportion = num_schools/percentage)
+
+head(HearingEstimatesSchools)
+```
+
+For the visual we want to create, it would be ideal to order the states by increasing percentage of the population with a hearing disability. To do this, we have to change the order of levels of the *locationdesc* variable. 
+```{r} 
+# Change order of levels of locationdesc so the bar graph can ascend in hearing 
+# disability estimates
+HearingEstimatesSchools$LocationDesc <- factor(HearingEstimatesSchools$LocationDesc, 
+                                               levels = HearingEstimatesSchools$LocationDesc[order(HearingEstimatesSchools$percentage)])
+```
+
+Finally, we can construct our bar graph to show the relationship between hearing disability estimates and the proportion of deaf schools for each percent of the population with a hearing disability. 
+```{r fig.width=6}
+HearingEstimatesSchools %>%
+  ggplot(aes(x = LocationDesc, y = percentage, fill = school_proportion)) + 
+  geom_bar(stat = 'identity', position = 'stack', width = .9) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  scale_fill_gradient(low = "red", high = "green") + 
+  ylab("Percentage with Hearing Disability") +
+  xlab("State/Territory") +
+  ggtitle("Hearing Disability Estimate by Location")
+```
+This graph clearly shows the proportion of the population with a hearing disabiity in each state. We can see that West Virginia has the greatest proportion, while the U.S. Virgin Islands have lowest prevalence of hearing disabilities among the states and territories. However, we can also see the relationship between deaf schools and prevalence of hearing disabilities. We can see that West Virginia has a very low *school_proportion* value, having only 1 deaf schoool for 11% of people in the state with a hearing disability. New York, on the other hand, has the highest *school_proportion* value: there are 9 deaf schools in the state of New York, but only a 3% prevalence rate of hearing disabilities. 
+
+This graph also answers our main question: do people with hearing disabilities tend to live in areas with more educational resources geared towards them? From the figure above, there is no discernible relationship between the number of deaf schools and the percentage of the population with a hearing disability within a state. So it would be fair to say that people with hearing disabilities do not tend to live in areas with more educational resources geared towards a deaf/hard-of-hearing population. 
+
+Based on these findings, I would be curious to learn if any patterns could be detected on a county or city level, or, if the data was available, whether patterns arise when examining the proportion of children with a hearing disability in relation to the number of deaf schools in an area.
