@@ -1,37 +1,4 @@
-## Welcome to GitHub Pages
+## Hearing Disability and Deaf Schools in the United States
+Approximately 1 in 4 people in the United States have some type of disability. For those with disabilities, accommodations may have to be made to allow them the same access to the world as people without disabilities. Perhaps the most important accommodations come in the form of educational resources and schools that have specific supports in place for students with disabilities. For those with hearing disabilities, there are a lot of different options for schooling that could support the student. But the most wholly accessible educational option is often a deaf school. Deaf schools and schools with specific programs to support deaf students are also become social hubs for the deaf community, at least at the post-secondary level. The three largest deaf communities in the United States are Washington, D.C.; Rochester, NY; and Los Angeles, CA, each of which have a university or college that is specifically geared towards deaf students (Gallaudet University, National Technical Institute of the Deaf, and National Center of Deafness at CSUN, respectively). 
 
-You can use the [editor on GitHub](https://github.com/maurajaeger/hearing-disability-project/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
-
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/maurajaeger/hearing-disability-project/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+In the following analysis, we are going to examine if this pattern can be found on the state level when looking at primary and secondary schools for the deaf. In other words, do people with hearing disabilities tend to live in states that have more deaf schools in relation to their deaf population? To accomplish this, we will first examine how the prevalence of hearing disabilities compares to other types of disabilities. Then, we will look at how hearing disabilities are distributed across the country. Finally, we will try to relate the number of deaf schools in a state to the percentage of the state population with a hearing disability. 
